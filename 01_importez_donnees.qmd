@@ -1,0 +1,120 @@
+---
+title: "Importez vos données dans R"
+author: Sani Maman Abdoul Aziz
+format:
+  html:
+    toc: true
+    footer: "Cours OpenClassRoom - Formatez vos données à l’aide de R"
+editor: visual
+execute:
+  echo: true
+  error: true
+  warning: true
+  message: true
+---
+
+*Ce support est à remplir en suivant le cours Initiez vous à R pour l'analyse de données - Partie 2 : Formatez vous données à l'aide de R*
+
+# Importez un fichier `csv`
+
+Les données sont disponibles dans le dossier `data-raw`, dans [le cours d'OpenClassRoom]() et sur le site [Open data du gouvernement](https://www.data.gouv.fr/fr/datasets/mixite-dans-le-groupe-edf/).
+
+```{r}
+mixit_groupe_edf <- read.csv2("data_raw/mixite-dans-le-groupe-edf.csv")
+mixit_groupe_edf[65, 1] <- 65
+
+```
+
+# Importez un fichier `.xsls`
+
+Les données sont disponibles dans le dossier `data-raw`, dans [le cours d'OpenClassRoom]() et sur le site de [Statistiques du gouvernement Singarpourien](https://stats.mom.gov.sg/Pages/Occupational-Wages-Tables2022.aspx).
+
+```{r}
+library(readxl)
+salaire <- read_excel("data_raw/mrsd_2022Wages_table1.xlsx", sheet = "T1", range = "B10:F290", col_names =c( "SSOC 2020",	"Occupation",	"Number Covered",	"Basic  Wage",	"Gross Wage"))
+
+```
+
+# Importez du texte depuis une page web
+
+Vous travaillez sur les stéréotypes de genre et vous souhaitez récupérer les résultats des deux études menées en 2022 par [Ipsos](https://www.ipsos.com/fr-fr) et [ARESVI](https://aresvi.fr/) pour connaître le poids de la masculinité toxique sur les garçons en France. Cela tombe bien les informations principales sont disponibles sur le site [Ipsos](https://www.ipsos.com/fr-fr/egalite-femme-homme-un-ancrage-precoce-des-stereotypes-de-genre-chez-les-enfants) mais sous forme de texte !\
+Aucun soucis, R va vous aider à récupérer les informations.
+
+Pour cela vous allez avoir besoin du package `{rvest}` qu'il vous faut installer puis importer.
+
+```{r}
+library(rvest)
+stereotype_genre <- read_html("https://www.keringfoundation.org/fr/articles/d'egal-a-egale/") |> 
+  html_elements("ul") |> 
+  html_text()
+
+stereotype_genre_chiffres_cles <- stereotype_genre[2]
+
+stereotype_genre_chiffres_cles
+
+
+stereotype_genre_chiffres_cles_phrases <-
+str_split(
+stereotype_genre_chiffres_cles,
+"\\.",
+simplify = TRUE
+)
+
+str_c(
+stereotype_genre_chiffres_cles_phrases |>
+str_extract(pattern = "[:digit:]+%"),
+stereotype_genre_chiffres_cles_phrases |>
+str_to_lower() |>
+str_extract(pattern = "fille|garçon"),
+sep = " "
+)
+
+# les NA prennent le dessus sur les autres, il faut donc les remplacer par rien
+
+str_c(
+stereotype_genre_chiffres_cles_phrases |>
+str_extract(pattern = "[:digit:]+%") |>
+str_replace_na(""),
+stereotype_genre_chiffres_cles_phrases |>
+str_to_lower() |>
+str_extract(pattern = "fille|garçon") |>
+str_replace_na(""),
+sep = " "
+)
+```
+```{r}
+write(x="stereotype_genre", "doc/stereotype_genre1.txt")
+```
+
+
+
+# importez une image
+
+L'image utilisée ici est le logo d'OpenClassRoom disponible dans le sous dossier `img`.
+
+```{r}
+library(magick)
+logo_oc <- image_read("img/logo_oc.jpeg")
+logo_oc_png <- image_convert(logo_oc, format = "png")
+logo_oc_png
+centre_logo_oc <- image_crop(logo_oc_png, "350X350+25+25")
+centre_logo_oc
+image_ocr(centre_logo_oc)
+cat(image_ocr(centre_logo_oc))
+image_flop(centre_logo_oc) |>
+image_ocr() |>
+cat()
+```
+```{r}
+image_write(image = image_flop(centre_logo_oc), path = "img/centre_logo_oc_retourne.png")
+```
+
+```{r}
+write.csv2(x = mixit_groupe_edf_fr, file = "data/presence_femme_edf.csv")
+```
+
+```{r}
+install.packages("writexl")
+library(writexl)
+write_xlsx(x = mixit_groupe_edf_fr, path = "data/presence_femme_edf.xlsx")
+```
